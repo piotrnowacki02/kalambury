@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
+</head>
+<body style="background-color: #24273a; color: #cad3f5">
+
+    <div>
+        <div id="toolbar" style="margin-bottom: 10px; text-align: center">
+            <button id="clearButton">Clear</button>
+            <input
+                type="color"
+                id="strokeColorInput"
+                value="#cad3f5"
+                style="margin-left: 10px"
+            />
+            <details class="palette" open>
+                <summary>
+                    Catppuccin Macchiato
+                </summary>
+                <button style="background-color: #f4dbd6;" onclick="strokeColorInput.value = '#f4dbd6'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #f0c6c6;" onclick="strokeColorInput.value = '#f0c6c6'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #f5bde6;" onclick="strokeColorInput.value = '#f5bde6'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #c6a0f6;" onclick="strokeColorInput.value = '#c6a0f6'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #ed8796;" onclick="strokeColorInput.value = '#ed8796'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #ee99a0;" onclick="strokeColorInput.value = '#ee99a0'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #f5a97f;" onclick="strokeColorInput.value = '#f5a97f'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #eed49f;" onclick="strokeColorInput.value = '#eed49f'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #a6da95;" onclick="strokeColorInput.value = '#a6da95'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #8bd5ca;" onclick="strokeColorInput.value = '#8bd5ca'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #91d7e3;" onclick="strokeColorInput.value = '#91d7e3'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #7dc4e4;" onclick="strokeColorInput.value = '#7dc4e4'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #8aadf4;" onclick="strokeColorInput.value = '#8aadf4'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <button style="background-color: #b7bdf8;" onclick="strokeColorInput.value = '#b7bdf8'; strokeColorInput.dispatchEvent(new Event('change'))"></button>
+                <style>
+                    .palette button {
+                        width: 16px;
+                        height: 16px;
+                    }
+                </style>
+            </details>
+            <input
+                type="range"
+                id="lineWidthInput"
+                min="1"
+                max="50"
+                value="5"
+                style="margin-left: 10px"
+            />
+        </div>
+        <canvas id="canvas" style="border: 3px solid #181926; border-radius: 6px; display: block; margin: auto"></canvas>
+    </div>
+
+    <script src="./client.js"></script>
+    
+</body>
+</html>

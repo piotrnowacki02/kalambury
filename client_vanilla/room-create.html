@@ -1,0 +1,19 @@
+<html>
+<head><title>Kalambury</title></head>
+<body>
+    <h1>Pokój: </h1>
+    <p id="roomId"></p>
+    <button onclick="copyToClipboard()">Kopiuj</button>
+    <script>
+        function copyToClipboard() {
+            var copyText = document.getElementById("roomId").innerText;
+
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert("Skopiowano: " + copyText);
+            }).catch(err => {
+                console.error('Błąd kopiowania: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
