@@ -1,6 +1,6 @@
 let isPainting = false;
 let lineWidth = 5;
-let strokeStyle = "#cad3f5";
+let strokeStyle = "#cad3f4";
 let playerId = null;
 
 const ctx = canvas.getContext("2d");

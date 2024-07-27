@@ -1,0 +1,55 @@
+<html>
+<head><title>Kalambury</title></head>
+<body>
+    <h1>Pokój: </h1>
+    <p id="roomId">{{roomId}}</p>
+    <button onclick="copyToClipboard()">Kopiuj</button>
+    <div id="player-list">
+        <h3>Gracze w pokoju:</h3>
+        {{#players}}
+            <p>{{name}}</p>
+        {{/players}}
+    </div>
+    <button onclick="startGame()">Play</button>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        function copyToClipboard() {
+            var copyText = document.getElementById("roomId").innerText;
+
+            navigator.clipboard.writeText(copyText).then(() => {
+                alert("Skopiowano: " + copyText);
+            }).catch(err => {
+                console.error('Błąd kopiowania: ', err);
+            });
+        }
+        
+        const socket = io();
+
+        const updatePlayerList = (players) => {
+            const playerListDiv = document.getElementById('player-list');
+            playerListDiv.innerHTML = '<h3>Gracze w pokoju:</h3>';
+            players.forEach(player => {
+                playerListDiv.innerHTML += `<p>${player.name}</p>`;
+            });
+        };
+
+        socket.on('player-joined', (players) => {
+            console.log('player joined the room');
+            updatePlayerList(players);
+        });
+
+        socket.on('lets-play', () =>
+        {
+            console.log("Recieved lets play event");
+            window.location.href = "/";
+        });
+
+        function startGame() {
+            const roomId = parseInt(document.getElementById("roomId").innerText);
+            console.log(`Starting game in room ${roomId}`);
+            socket.emit('start-game', roomId);
+        }
+    </script>
+</body>
+</html>
