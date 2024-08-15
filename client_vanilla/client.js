@@ -1,11 +1,12 @@
 let isPainting = false;
 let lineWidth = 5;
 let strokeStyle = "#cad3f4";
-let playerId = null;
 
 const ctx = canvas.getContext("2d");
 let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
+
+const isCurrentDrawingPlayer = currPlayerId === playerId;
 
 const socket = io("ws://localhost:8080");
 socket.on("message", (incoming_buffer) => {
@@ -43,14 +44,14 @@ socket.on("message", (incoming_buffer) => {
   }
 });
 
+
+
 canvas.width = window.innerWidth - canvas.offsetLeft;
 canvas.height = window.innerHeight - canvas.offsetTop;
 
 const canvasOffsetX = canvas.offsetLeft;
 const canvasOffsetY = canvas.offsetTop;
 
-// buffer: variant<{ x: int, y: int } | int>[];
-// for element of incoming_buffer
 
 const startDrawing = (e) => {
   if (e.button === 0) {

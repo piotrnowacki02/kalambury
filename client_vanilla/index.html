@@ -52,9 +52,33 @@
             />
         </div>
         <canvas id="canvas" style="border: 3px solid #181926; border-radius: 6px; display: block; margin: auto"></canvas>
+        <div id="team-list" style="margin-left: 20px;">
+            <div class="team">
+                <h3>Team 1</h3>
+                <ul>
+                    {{#team1}}
+                    <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+                    {{/team1}}
+                </ul>
+            </div>
+            <div class="team">
+                <h3>Team 2</h3>
+                <ul>
+                    {{#team2}}
+                    <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+                    {{/team2}}
+                </ul>
+            </div>
+        </div>
     </div>
-
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.js"></script>
     <script src="./client.js"></script>
-    
+    <style>
+        .highlight 
+        {
+            font-weight: bold;
+            color: #f5a97f; /* or any other color to highlight the current drawing player */
+        }
+    </style>
 </body>
 </html>

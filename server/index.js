@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined'));
 
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 1 * 60 * 1000, // 1 minute
     max: 100, // Limit each IP to 100 requests per 15 minutes
     message: 'Too many requests from this IP, please try again later'
 });
@@ -50,11 +50,12 @@ let playerData = async (playerId) =>
 {
     try
     {
-        const [results, _] = await pool.query('SELECT 1 FROM players p inner join rooms r on p.room_id = r.room_id WHERE player_id = ? AND p.room_id IS NOT NULL', [playerId]);
+        const [results, _] = await pool.query('SELECT * FROM players p inner join rooms r on p.room_id = r.room_id WHERE player_id = ? AND p.room_id IS NOT NULL', [playerId]);
         if(results.length > 0)
         {
             const player = results[0];
-            return {id: player.player_id,name: player.name, room: player.room_id, group: player.group_id};
+            console.log("udalo sie pobrac dane gracza: ", player.player_id, player.name, player.room_id, player.team);
+            return {id: player.player_id,name: player.name, room: player.room_id, team: player.team_id};
         }
         else
         {
@@ -126,6 +127,25 @@ app.use(async (req, res, next) => {
             console.log("redirecting to /roomSelect");
             return res.redirect('/roomSelect');
         }
+
+        const player = await playerData(playerId);
+
+        const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [player.room]);
+        const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [player.room]);
+
+        const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [player.room]);
+
+        // add isDrawing field to each player in each team
+        team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+        team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+
+
+        return res.render('index', {
+            team1: team1Players,
+            team2: team2Players,
+            playerId: player.id,
+            currPlayerId: currPlayer_id[0].currPlayer_id
+        });
     }
 
 
@@ -134,6 +154,10 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/name', (req, res) => {
+    // if(!req.cookies.playerId)
+    // {
+    //     return res.redirect('/');
+    // }
     console.log("GET/name");
     res.sendFile(path.join(__dirname, '..', 'client_vanilla', 'name.html'));// kiedyś zrób to mustachem res.render('name');
 });
@@ -151,12 +175,19 @@ app.post('/submit-name', async (req, res) => {
 });
 
 app.get('/roomSelect', (req, res) => {
+    // if(!req.cookies.playerId || playerNameIsNull(playerId))
+    // {
+    //     return res.redirect('/');
+    // }
     console.log("GET/roomSelect");
     res.sendFile(path.join(__dirname, '..', 'client_vanilla', 'roomSelect.html'));
 });
 
 app.get('/room-create', async (req, res) => {
-
+    // if(!req.cookies.playerId || playerNameIsNull(playerId))
+    // {
+    //     return res.redirect('/');
+    // }
     console.log("GET/room-create");
     try {
         console.log("room create sql start")
@@ -174,6 +205,10 @@ app.get('/room-create', async (req, res) => {
 });
 
 app.post('/room-join', async (req, res) => {
+    // if(!req.cookies.playerId || playerNameIsNull(playerId))
+    // {
+    //     return res.redirect('/');
+    // }
     console.log("POST/room-join", req.body['room-id']);
     try {
         const [results2, _2] = await pool.query('UPDATE players SET room_id = ? WHERE player_id = ?', [req.body['room-id'], playerId]);
@@ -205,36 +240,65 @@ app.use(express.static(path.join(__dirname, '..', 'client_vanilla')));
 io.on('connection', async (socket) => {
     console.log('a user connected');
 
-    const cookies = socket.handshake.headers.cookie;
-    const playerIdToken = cookies.split('; ').find(row => row.startsWith('playerId')).split('=')[1];
+    const cookieHeader = socket.handshake.headers.cookie || '';
+    let playerIdToken;
+
     try {
+        // Check if cookies are present
+        if (!cookieHeader) {
+            throw new Error('No cookies found');
+        }
+
+        // Split cookies and find playerId
+        const cookies = cookieHeader.split('; ');
+        const playerIdCookie = cookies.find(row => row.startsWith('playerId'));
+
+        if (!playerIdCookie) {
+            throw new Error('playerId cookie not found');
+        }
+
+        // Get the token from the playerId cookie
+        playerIdToken = playerIdCookie.split('=')[1];
+
+        // Verify JWT token
         const decoded = jwt.verify(playerIdToken, SECRET_KEY);
         const playerId = decoded.value;
         let roomId;
 
         try {
+            // Fetch room ID from the database
             const [results] = await pool.query('SELECT room_id FROM players WHERE player_id = ?', [playerId]);
             if (results.length > 0) {
                 roomId = results[0].room_id;
+            } else {
+                throw new Error('Room ID not found for player');
             }
         } catch (error) {
             console.error('Error fetching room ID:', error);
+            socket.emit('error', 'Could not fetch room ID');
+            socket.disconnect();
+            return;
         }
-        
+
         if (roomId) {
+            // Join the socket to the room
             socket.join(roomId);
             console.log(`User with player ID ${playerId} joined room ${roomId}`);
 
-            const [players] = await pool.query('Select name from players where room_id = ?', [roomId]);
+            // Notify other players in the room
+            const [players] = await pool.query('SELECT name FROM players WHERE room_id = ?', [roomId]);
             io.to(roomId).emit('player-joined', players);
         }
     } catch (err) {
+        // Handle different types of errors
         if (err.name === 'TokenExpiredError') {
             socket.emit('token-expired');
         } else {
-            console.error('Invalid token:', err);
-            socket.disconnect();
+            console.error('Invalid token or error parsing cookies:', err.message);
+            socket.emit('error', 'Invalid token or error parsing cookies');
         }
+        socket.disconnect();
+        return;
     }
 
     socket.on('message', (msg) => {
@@ -245,14 +309,46 @@ io.on('connection', async (socket) => {
 
     socket.on('start-game', async (roomId) => {
         try {
-            await pool.query('UPDATE rooms SET playing = TRUE WHERE room_id = ?', [roomId]);
-            console.log(`Emitting 'lets-play' to room ${roomId}`);
+            const [results] = await pool.query('Select count(*) from players where room_id = ?', [roomId]);
+            if (results[0]['count(*)'] < 4) {
+                console.log("Not enough players to start game");
+                return;
+            }
+    
+            const [playersToSort] = await pool.query('SELECT player_id FROM players WHERE room_id = ?', [roomId]);
+            let round = 1;
+            await pool.query('UPDATE rooms SET round = ? WHERE room_id = ?', [round, roomId]);
+            
+            const shuffledPlayers = playersToSort.sort(() => Math.random() - 0.5);
+            const half = Math.floor(playersToSort.length / 2);
+            
+            for (let i = 0; i < shuffledPlayers.length; i++) {
+                const team = i < half ? 1 : 2;
+                await pool.query('UPDATE players SET team_id = ? WHERE player_id = ?', [team, shuffledPlayers[i].player_id]);
+            }
+    
+            // select players from the room from team 1
+            const [team1Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
+    
+            // check if there are any players in the result
+            if (team1Players.length > 0) {
+                // get the first player from team 1
+                const firstPlayer = team1Players[0]; // first element in the array
+                console.log("firstPlayer", firstPlayer);
+                await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [firstPlayer.player_id, roomId]);
+            } else {
+                console.log("No players found in team 1 for room", roomId);
+            }
+    
+            // Emit team assignments to clients
             io.to(roomId).emit('lets-play');
-            console.log(`'lets-play' event emitted to room ${roomId}`);
+    
+            console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
         }
     });
+    
 });
 
 server.listen(8080, () => { console.log('listening to http://localhost:8080'); });

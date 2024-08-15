@@ -39,7 +39,7 @@
             updatePlayerList(players);
         });
 
-        socket.on('lets-play', () =>
+        socket.on('lets-play', (data) =>
         {
             console.log("Recieved lets play event");
             window.location.href = "/";
