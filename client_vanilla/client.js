@@ -43,8 +43,39 @@ socket.on("message", (incoming_buffer) => {
   }
 });
 
+let countdownInterval;
+const timerDisplay = document.getElementById("timer");
+
+function startTimer(duration) {
+    let timeRemaining = duration;
+    
+    // Clear any existing interval
+    clearInterval(countdownInterval);
+
+    countdownInterval = setInterval(() => {
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+
+        // Update the timer display in "MM:SS" format
+        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        // If time runs out, stop the timer
+        if (timeRemaining <= 0) {
+            clearInterval(countdownInterval);
+            timerDisplay.textContent = "00:00";
+            timerDisplay.style.color = "red";
+            timerDisplay.style.fontWeight = "bold";
+        }
+
+        timeRemaining--;
+    }, 1000);
+}
+
 socket.on("new-round", (data) => {
   console.log("new-round", data);
+
+  const roundDuration = data.roundDuration || 58; // w przyszłości ustaw żeby serwer przesyłał czas rundy
+  startTimer(roundDuration);
 
   // Szablon HTML dla listy drużyn
   const template = `

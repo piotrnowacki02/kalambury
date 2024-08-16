@@ -9,24 +9,30 @@
 <body style="background-color: #24273a; color: #cad3f5">
     
     <div id="main">
-        <div id="team-list" style="margin-right: 20px; margin-left: 10px;">
-            <div class="team">
-                <h3>Team 1</h3>
-                <ul>
-                    {{#team1}}
-                    <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
-                    {{/team1}}
-                </ul>
+        <div id="left-panel" style="margin-right: 20px; margin-left: 10px;">
+            <div id="timer" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+                00:00
             </div>
-            <div class="team">
-                <h3>Team 2</h3>
-                <ul>
-                    {{#team2}}
-                    <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
-                    {{/team2}}
-                </ul>
+            <div id="team-list" style="margin-right: 20px; margin-left: 10px;">
+                <div class="team">
+                    <h3>Team 1</h3>
+                    <ul>
+                        {{#team1}}
+                        <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+                        {{/team1}}
+                    </ul>
+                </div>
+                <div class="team">
+                    <h3>Team 2</h3>
+                    <ul>
+                        {{#team2}}
+                        <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+                        {{/team2}}
+                    </ul>
+                </div>
             </div>
         </div>
+
         <div id="drawing-area">
             <div id="toolbar" style="margin-bottom: 10px; text-align: center">
                 <button id="clearButton">Clear</button>
@@ -85,9 +91,29 @@
         {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             flex-direction: row;
             margin: auto;
+        }
+        #left-panel 
+        {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #timer
+        {
+            align-self: flex-start;
+            font-size: 44px;
+            color: red;
+            letter-spacing: 5px;
+            background-color: white;
+            margin-bottom: 10px;
+            font-weight: bold;
+            border: 3px solid black;
+            padding-left: 10px;
+            padding-right: 10px;
         }
     </style>
 </body>

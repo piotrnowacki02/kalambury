@@ -397,6 +397,7 @@ io.on('connection', async (socket) => {
     
             // select players from the room from team 1
             const [team1Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
+            const [team2Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
     
             // check if there are any players in the result
             if (team1Players.length > 0) {
