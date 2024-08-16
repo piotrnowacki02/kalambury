@@ -6,7 +6,6 @@ const ctx = canvas.getContext("2d");
 let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
 
-const isCurrentDrawingPlayer = currPlayerId === playerId;
 
 const socket = io("ws://localhost:8080");
 socket.on("message", (incoming_buffer) => {
@@ -44,16 +43,46 @@ socket.on("message", (incoming_buffer) => {
   }
 });
 
+socket.on("new-round", (data) => {
+  console.log("new-round", data);
 
+  // Szablon HTML dla listy drużyn
+  const template = `
+      <div class="team">
+          <h3>Team 1</h3>
+          <ul>
+              {{#team1}}
+              <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+              {{/team1}}
+          </ul>
+      </div>
+      <div class="team">
+          <h3>Team 2</h3>
+          <ul>
+              {{#team2}}
+              <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+              {{/team2}}
+          </ul>
+      </div>
+  `;
 
-canvas.width = window.innerWidth - canvas.offsetLeft;
-canvas.height = window.innerHeight - canvas.offsetTop;
+  // Generowanie nowej listy drużyn przy użyciu Mustache.js
+  const rendered = Mustache.render(template, data);
+
+  // Aktualizacja elementu DOM z listą drużyn
+  document.getElementById('team-list').innerHTML = rendered;
+});
+
+canvas.width = 500;
+canvas.height = 400;
 
 const canvasOffsetX = canvas.offsetLeft;
 const canvasOffsetY = canvas.offsetTop;
 
 
 const startDrawing = (e) => {
+  //console.log("offset: ", canvasOffsetX,"  ,  ", canvasOffsetY);
+  const rect = canvas.getBoundingClientRect();
   if (e.button === 0) {
     // Sprawdź, czy to lewy przycisk myszy
     isPainting = true;
@@ -62,21 +91,20 @@ const startDrawing = (e) => {
     ctx.strokeStyle = strokeStyle;
     ctx.fillStyle = strokeStyle;
     ctx.beginPath();
-    ctx.arc(e.clientX - canvasOffsetX, e.clientY - canvasOffsetY, lineWidth * 0.01, 0, 2*Math.PI)
-    // ctx.fill();
+    ctx.arc(e.clientX - rect.left, e.clientY - rect.top, lineWidth * 0.01, 0, 2*Math.PI)
     ctx.stroke();
-    ctx.moveTo(e.clientX - canvasOffsetX, e.clientY - canvasOffsetY); // x_0, y_0
-    //socket.emit('message', { type: 0, x: (e.clientX - canvasOffsetX), y: (e.clientY - canvasOffsetY) });
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
     outgoing_buffer.push(START_OF_BUFFER);
-    outgoing_buffer.push({ x: e.clientX - canvasOffsetX, y: e.clientY - canvasOffsetY }); // x_0
+    outgoing_buffer.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   }
 };
 
 const draw = (e) => {
   if (!isPainting) return;
-  ctx.lineTo(e.clientX - canvasOffsetX, e.clientY - canvasOffsetY); // x_k, y_k
+  const rect = canvas.getBoundingClientRect();
+  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
   ctx.stroke();
-  outgoing_buffer.push({ x: e.clientX - canvasOffsetX, y: e.clientY - canvasOffsetY }); // x_k
+  outgoing_buffer.push({ x: e.clientX - rect.left, y: e.clientY - rect.top });
 };
 
 const sendBuffer = () => {

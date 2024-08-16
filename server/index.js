@@ -236,6 +236,74 @@ app.post('/start-game', async (req, res) => {
 
 app.use(express.static(path.join(__dirname, '..', 'client_vanilla')));
 
+// Mapa do przechowywania timerów dla każdego pokoju
+const roomTimers = new Map();
+
+function div(a, b)
+{
+    return (Math.round(a/b - 0.5));
+}
+
+// Funkcja do uruchamiania timera rundy
+const startRoundTimer = (roomId) => {
+    // Jeśli istnieje poprzedni timer dla tego pokoju, anuluj go
+    if (roomTimers.has(roomId)) {
+        clearTimeout(roomTimers.get(roomId));
+    }
+    
+    // Ustawienie timera na 1 minutę (60000 ms)
+    const timer = setTimeout(async () => {
+        try {
+            // Zwiększenie rundy w bazie danych
+            const [result] = await pool.query('UPDATE rooms SET round = round + 1 WHERE room_id = ?', [roomId]);
+            console.log(`Round updated for room ${roomId}`);
+
+            // Pobranie nowej wartości rundy
+            const [roundResult] = await pool.query('SELECT round FROM rooms WHERE room_id = ?', [roomId]);
+            if(roundResult[0].round % 2 == 0) // round for team 2
+            {
+                let currPlayer_id_in_db = div(roundResult[0].round, 2);
+                const [results, _] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
+                let currPlayer_id = results[currPlayer_id_in_db % results.length].player_id;
+                await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [currPlayer_id, roomId]);
+            }
+            else // round for team 1
+            {
+                let currPlayer_id_in_db = div(roundResult[0].round, 2);
+                const [results, _] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
+                let currPlayer_id = results[currPlayer_id_in_db % results.length].player_id;
+                await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [currPlayer_id, roomId]);
+            }
+            const newRound = roundResult[0].round;
+
+            const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
+            const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
+
+            const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [roomId]);
+
+            // add isDrawing field to each player in each team
+            team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+            team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+
+            // Wysłanie informacji o nowej rundzie do graczy w pokoju
+            io.to(roomId).emit('new-round', { 
+                team1: team1Players,
+                team2: team2Players,
+                currPlayerId: currPlayer_id
+            });
+            io.to(roomId).emit("message", { clearCanvas: true });
+
+            // Uruchomienie timera dla nowej rundy
+            startRoundTimer(roomId);
+        } catch (error) {
+            console.error(`Error updating round for room ${roomId}:`, error);
+        }
+    }, 60000);
+
+    // Zapisanie timera w mapie
+    roomTimers.set(roomId, timer);
+};
+
 
 io.on('connection', async (socket) => {
     console.log('a user connected');
@@ -342,7 +410,7 @@ io.on('connection', async (socket) => {
     
             // Emit team assignments to clients
             io.to(roomId).emit('lets-play');
-    
+            startRoundTimer(roomId);
             console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
