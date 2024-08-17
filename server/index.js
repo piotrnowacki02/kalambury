@@ -46,6 +46,30 @@ const io = require('socket.io')(server, {
     cors: { origin: '*' }
 });
 
+let roomData = async (roomId) =>
+{       
+    try
+    {
+        const [results, _] = await pool.query('SELECT * FROM rooms WHERE room_id = ?', [roomId]);
+        if(results.length > 0)
+        {
+            const room = results[0];
+            console.log("udalo sie pobrac dane pokoju: ", room.room_id, room.playing, room.owner);
+            return {id: room.room_id, playing: room.playing, owner: room.owner};
+        }
+        else
+        {
+            console.log("No room found with id: ${roomId}");
+            return null;
+        }
+    }
+    catch(error)
+    {
+        console.error('Error fetching room information:', error);
+        return null;
+    }
+};
+
 let playerData = async (playerId) =>
 {
     try
@@ -129,6 +153,11 @@ app.use(async (req, res, next) => {
         }
 
         const player = await playerData(playerId);
+        const room = await roomData(player.room);
+        if(room.playing == false)
+        {
+            return res.render('room', {roomId: room.id});
+        }
 
         const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [player.room]);
         const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [player.room]);
@@ -386,6 +415,7 @@ io.on('connection', async (socket) => {
             const [playersToSort] = await pool.query('SELECT player_id FROM players WHERE room_id = ?', [roomId]);
             let round = 1;
             await pool.query('UPDATE rooms SET round = ? WHERE room_id = ?', [round, roomId]);
+            await pool.query('UPDATE rooms SET playing = TRUE WHERE room_id = ?', [roomId]);
             
             const shuffledPlayers = playersToSort.sort(() => Math.random() - 0.5);
             const half = Math.floor(playersToSort.length / 2);
