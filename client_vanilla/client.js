@@ -5,7 +5,41 @@ let strokeStyle = "#cad3f4";
 const ctx = canvas.getContext("2d");
 let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
+let isDrawer = false;
 
+// document.addEventListener('DOMContentLoaded', function() {
+//   console.log('DOM fully loaded and parsed');
+//   const canvasData = "{{{canvasData}}}";
+//   console.log('canvasData', canvasData);
+//   if (canvasData) {
+//       const canvas = document.getElementById('canvas');
+//       const ctx = canvas.getContext('2d');
+//       const img = new Image();
+//       img.onload = function() {
+//           ctx.drawImage(img, 0, 0);
+//       };
+//       img.src = canvasData;
+//   }
+// });
+
+function parseJwt(token) {
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+  
+  return JSON.parse(jsonPayload);
+}
+
+function getCookieValue(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+      return parts.pop().split(';').shift();
+  }
+  return null;
+}
 
 const socket = io("ws://localhost:8080");
 socket.on("message", (incoming_buffer) => {
@@ -63,8 +97,6 @@ function startTimer(duration) {
         if (timeRemaining <= 0) {
             clearInterval(countdownInterval);
             timerDisplay.textContent = "00:00";
-            timerDisplay.style.color = "red";
-            timerDisplay.style.fontWeight = "bold";
         }
 
         timeRemaining--;
@@ -74,10 +106,9 @@ function startTimer(duration) {
 socket.on("new-round", (data) => {
   console.log("new-round", data);
 
-  const roundDuration = data.roundDuration || 58; // w przyszłości ustaw żeby serwer przesyłał czas rundy
+  const roundDuration = data.roundDuration || 60; // w przyszłości ustaw żeby serwer przesyłał czas rundy
   startTimer(roundDuration);
 
-  // Szablon HTML dla listy drużyn
   const template = `
       <div class="team">
           <h3>Team 1</h3>
@@ -97,12 +128,45 @@ socket.on("new-round", (data) => {
       </div>
   `;
 
-  // Generowanie nowej listy drużyn przy użyciu Mustache.js
   const rendered = Mustache.render(template, data);
-
-  // Aktualizacja elementu DOM z listą drużyn
   document.getElementById('team-list').innerHTML = rendered;
+
+  const token = getCookieValue('playerId');
+  if (!token) {
+    console.error('Ciasteczko playerId nie istnieje');
+    return; // Przerwij dalsze wykonanie, jeśli ciasteczko nie istnieje
+  }
+
+  const myPlayerId = parseJwt(token);
+
+  isDrawer = (myPlayerId.value == data.currPlayerId[0].currPlayer_id);
 });
+
+
+
+socket.on('canvas-state-request', () => {
+    console.log('Sending canvas state to server');
+    if (isDrawer) {
+        // Convert the canvas to a data URL
+        const canvasDataUrl = canvas.toDataURL();
+        console.log('canvasDataUrl', canvasDataUrl);
+        socket.emit('canvas-state-update', canvasDataUrl);
+    }
+});
+
+// socket.on('canvas-state-update', (canvasDataUrl) => {
+//     const img = new Image();
+//     img.src = canvasDataUrl;
+//     img.onload = () => {
+//         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+//         ctx.drawImage(img, 0, 0); // Draw the canvas from the data URL
+//     };
+// });
+
+// Example function that sets the client as the drawer
+function setAsDrawer(isDrawing) {
+    isDrawer = isDrawing;
+}
 
 canvas.width = 500;
 canvas.height = 400;

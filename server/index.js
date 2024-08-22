@@ -78,7 +78,7 @@ let playerData = async (playerId) =>
         if(results.length > 0)
         {
             const player = results[0];
-            console.log("udalo sie pobrac dane gracza: ", player.player_id, player.name, player.room_id, player.team);
+            console.log("udalo sie pobrac dane gracza: ", player.player_id, player.name, player.room_id, player.team_id);
             return {id: player.player_id,name: player.name, room: player.room_id, team: player.team_id};
         }
         else
@@ -119,7 +119,7 @@ const setPlayerId = async (res) => {
     console.log("inserted: ", results.insertId);
     playerId = results.insertId;
     const token = jwt.sign({ value: results.insertId }, SECRET_KEY, { expiresIn: '1h' });
-    res.cookie('playerId', token, { httpOnly: true, secure: false });
+    res.cookie('playerId', token, { httpOnly: false, secure: false });
 };
 
 app.use(async (req, res, next) => {
@@ -168,12 +168,14 @@ app.use(async (req, res, next) => {
         team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
         team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
 
-
+        const canvasData = roomCanvases[player.room] || '';
+        console.log("canvasData: ", canvasData);
         return res.render('index', {
             team1: team1Players,
             team2: team2Players,
             playerId: player.id,
-            currPlayerId: currPlayer_id[0].currPlayer_id
+            currPlayerId: currPlayer_id[0].currPlayer_id,
+            canvasData: canvasData
         });
     }
 
@@ -333,6 +335,15 @@ const startRoundTimer = (roomId) => {
     roomTimers.set(roomId, timer);
 };
 
+let roomCanvases = {}; // To store canvas data for each room
+
+// Emit canvas-state-request every 3 seconds to each room
+setInterval(() => {
+    const rooms = io.sockets.adapter.rooms;
+    for (const room of rooms) {
+        io.to(room[0]).emit('canvas-state-request');
+    }
+}, 3000);
 
 io.on('connection', async (socket) => {
     console.log('a user connected');
@@ -445,6 +456,14 @@ io.on('connection', async (socket) => {
             console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
+        }
+    });
+
+    socket.on('canvas-state-update', (canvasData) => {
+        const rooms = Array.from(socket.rooms);
+        const room = rooms[1]; // Assuming room is the second item (first is socket id)
+        if (room) {
+            roomCanvases[room] = canvasData; // Store the canvas data for the room
         }
     });
     
