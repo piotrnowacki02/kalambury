@@ -7,20 +7,6 @@ let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
 let isDrawer = false;
 
-// document.addEventListener('DOMContentLoaded', function() {
-//   console.log('DOM fully loaded and parsed');
-//   const canvasData = "{{{canvasData}}}";
-//   console.log('canvasData', canvasData);
-//   if (canvasData) {
-//       const canvas = document.getElementById('canvas');
-//       const ctx = canvas.getContext('2d');
-//       const img = new Image();
-//       img.onload = function() {
-//           ctx.drawImage(img, 0, 0);
-//       };
-//       img.src = canvasData;
-//   }
-// });
 
 function parseJwt(token) {
   const base64Url = token.split('.')[1];
@@ -154,14 +140,6 @@ socket.on('canvas-state-request', () => {
     }
 });
 
-// socket.on('canvas-state-update', (canvasDataUrl) => {
-//     const img = new Image();
-//     img.src = canvasDataUrl;
-//     img.onload = () => {
-//         ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-//         ctx.drawImage(img, 0, 0); // Draw the canvas from the data URL
-//     };
-// });
 
 // Example function that sets the client as the drawer
 function setAsDrawer(isDrawing) {
@@ -176,7 +154,6 @@ const canvasOffsetY = canvas.offsetTop;
 
 
 const startDrawing = (e) => {
-  //console.log("offset: ", canvasOffsetX,"  ,  ", canvasOffsetY);
   const rect = canvas.getBoundingClientRect();
   if (e.button === 0) {
     // Sprawdź, czy to lewy przycisk myszy
@@ -216,7 +193,6 @@ const stopDrawing = (e) => {
   if (isPainting && e.button === 0) {
     // Dodano warunek sprawdzający czy isPainting jest true
     isPainting = false;
-    // buffer.push(END_OF_BUFFER);
     sendBuffer();
   }
 };
