@@ -6,6 +6,7 @@ const ctx = canvas.getContext("2d");
 let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
 let isDrawer = false;
+let canvasDatas = ['', '', '', '', ''];
 
 
 function parseJwt(token) {
@@ -41,6 +42,24 @@ socket.on("message", (incoming_buffer) => {
   }
   if ("clearCanvas" in incoming_buffer) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+  if("undo" in incoming_buffer) {
+    canvasDatas.pop();
+    const canvasDataUrl = canvasDatas[canvasDatas.length - 1];
+    const img = new Image();
+    img.src = canvasDataUrl;
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+    };
+    return;
+  }
+  if ("canvasDataUrl" in incoming_buffer) {
+    if (canvasDatas.length >= 5) {
+      canvasDatas.shift();
+    }
+    canvasDatas.push(incoming_buffer.canvasDataUrl);
     return;
   }
 
@@ -135,7 +154,6 @@ socket.on('canvas-state-request', () => {
     if (isDrawer) {
         // Convert the canvas to a data URL
         const canvasDataUrl = canvas.toDataURL();
-        console.log('canvasDataUrl', canvasDataUrl);
         socket.emit('canvas-state-update', canvasDataUrl);
     }
 });
@@ -194,6 +212,11 @@ const stopDrawing = (e) => {
     // Dodano warunek sprawdzający czy isPainting jest true
     isPainting = false;
     sendBuffer();
+    if (canvasDatas.length >= 5) {
+      canvasDatas.shift();
+    }
+    canvasDatas.push(canvas.toDataURL());
+    socket.emit("message", { canvasDataUrl: canvas.toDataURL() });
   }
 };
 
@@ -203,6 +226,22 @@ canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseleave", stopDrawing);
 canvas.addEventListener("contextmenu", (e) => {
   e.preventDefault(); // Zablokuj domyślne menu kontekstowe
+});
+
+undoButton.addEventListener("click", () => {
+  console.log("undo, length: ", canvasDatas.length);
+  if(canvasDatas.length <= 1) {
+    return;
+  }
+  canvasDatas.pop();
+  const canvasDataUrl = canvasDatas[canvasDatas.length - 1];
+  const img = new Image();
+  img.src = canvasDataUrl;
+  img.onload = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+  };
+  socket.emit("message", { undo: true });
 });
 
 clearButton.addEventListener("click", () => {
