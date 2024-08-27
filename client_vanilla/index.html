@@ -15,7 +15,7 @@
             </div>
             <div id="team-list" style="margin-right: 20px; margin-left: 10px;">
                 <div class="team">
-                    <h3>Team 1</h3>
+                    <h3>Team 1 ({{team1Score}} points)</h3>
                     <ul>
                         {{#team1}}
                         <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -23,7 +23,7 @@
                     </ul>
                 </div>
                 <div class="team">
-                    <h3>Team 2</h3>
+                    <h3>Team 2 ({{team2Score}} points)</h3>
                     <ul>
                         {{#team2}}
                         <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -79,6 +79,7 @@
             </div>
             <canvas id="canvas" style="border: 3px solid #181926; border-radius: 6px; display: block; margin: auto" ></canvas>
         </div>
+
     </div>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.js"></script>
     <script src="./client.js"></script>

@@ -164,6 +164,11 @@ app.use(async (req, res, next) => {
 
         const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [player.room]);
 
+        const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [player.room]);
+        const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [player.room]);
+        console.log("team1Score: ", team1Score[0].team1_score);
+        console.log("team2Score: ", team2Score[0].team2_score);
+
         // add isDrawing field to each player in each team
         team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
         team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
@@ -173,6 +178,8 @@ app.use(async (req, res, next) => {
         return res.render('index', {
             team1: team1Players,
             team2: team2Players,
+            team1Score: team1Score[0].team1_score,
+            team2Score: team2Score[0].team2_score,
             playerId: player.id,
             currPlayerId: currPlayer_id[0].currPlayer_id,
             canvasData: canvasData

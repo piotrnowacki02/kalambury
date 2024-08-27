@@ -110,7 +110,7 @@ function startTimer(duration) {
 
 socket.on("new-round", (data) => {
   console.log("new-round", data);
-
+  canvasDatas = ['', '', '', '', ''];
   const roundDuration = data.roundDuration || 60; // w przyszłości ustaw żeby serwer przesyłał czas rundy
   startTimer(roundDuration);
 
