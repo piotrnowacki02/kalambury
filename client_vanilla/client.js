@@ -85,28 +85,31 @@ socket.on("message", (incoming_buffer) => {
 let countdownInterval;
 const timerDisplay = document.getElementById("timer");
 
-function startTimer(duration) {
-    let timeRemaining = duration;
-    
-    // Clear any existing interval
-    clearInterval(countdownInterval);
+function startTimer(timeRemaining) {
+  // Clear any existing interval
+  clearInterval(countdownInterval);
 
-    countdownInterval = setInterval(() => {
-        const minutes = Math.floor(timeRemaining / 60);
-        const seconds = timeRemaining % 60;
+  countdownInterval = setInterval(() => {
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
 
-        // Update the timer display in "MM:SS" format
-        timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      // Update the timer display in "MM:SS" format
+      timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
-        // If time runs out, stop the timer
-        if (timeRemaining <= 0) {
-            clearInterval(countdownInterval);
-            timerDisplay.textContent = "00:00";
-        }
+      // If time runs out, stop the timer
+      if (timeRemaining <= 0) {
+          clearInterval(countdownInterval);
+          timerDisplay.textContent = "00:00";
+      }
 
-        timeRemaining--;
-    }, 1000);
+      timeRemaining--;
+  }, 1000);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const remainingTime = parseInt(document.getElementById('timer').dataset.remainingTime, 10);
+  startTimer(remainingTime);
+});
 
 socket.on("new-round", (data) => {
   console.log("new-round", data);
@@ -135,6 +138,14 @@ socket.on("new-round", (data) => {
 
   const rendered = Mustache.render(template, data);
   document.getElementById('team-list').innerHTML = rendered;
+
+  const template2 = `
+      <div class="word">
+          <h3>Hasło: {{word_to_guess}}</h3>
+      </div>
+  `;
+  const rendered2 = Mustache.render(template2, data);
+  document.getElementById('word-to-guess').innerHTML = rendered2;
 
   const token = getCookieValue('playerId');
   if (!token) {
@@ -257,4 +268,9 @@ lineWidthInput.addEventListener("change", (e) => {
 strokeColorInput.addEventListener("change", (e) => {
   strokeStyle = e.target.value;
   socket.emit("message", { color: strokeStyle });
+});
+
+awardPointButton.addEventListener('click', function() {
+  // Emit an event to notify the server that a point should be awarded
+  socket.emit('award-point', {});
 });

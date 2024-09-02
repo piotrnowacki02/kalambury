@@ -10,7 +10,7 @@
     
     <div id="main">
         <div id="left-panel" style="margin-right: 20px; margin-left: 10px;">
-            <div id="timer" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+            <div id="timer" data-remaining-time="{{remainingTime}}" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
                 00:00
             </div>
             <div id="team-list" style="margin-right: 20px; margin-left: 10px;">
@@ -31,9 +31,18 @@
                     </ul>
                 </div>
             </div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <button id="awardPointButton">Przyznaj punkt</button>
+            </div>
         </div>
 
         <div id="drawing-area">
+            <div id="word-to-guess" style="font-size: 24px; color: #8aadf4; margin-bottom: 10px; text-align: center;">
+                <div class="word">
+                    <h3>Hasło: {{word_to_guess}}</h3>
+                </div>
+            </div>
             <div id="toolbar" style="margin-bottom: 10px; text-align: center">
                 <button id="undoButton">Undo</button>
                 <button id="clearButton">Clear</button>
@@ -86,6 +95,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded and parsed');
+
+            // Load the canvas data from the server
             const canvasData = "{{{canvasData}}}";
             console.log('canvasData', canvasData);
             if (canvasData) {

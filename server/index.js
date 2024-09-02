@@ -10,6 +10,8 @@ const rateLimit = require('express-rate-limit');
 
 let playerId = null;
 let roomId = null;
+// stwórz tablice gdzie indeksy to id pokoju a wartości to tablica z wordIds
+let roomWords = {};
 
 const pool = createPool({
     host: 'localhost',
@@ -166,8 +168,18 @@ app.use(async (req, res, next) => {
 
         const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [player.room]);
         const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [player.room]);
-        console.log("team1Score: ", team1Score[0].team1_score);
-        console.log("team2Score: ", team2Score[0].team2_score);
+
+        const [rows] = await pool.query('SELECT word FROM words join rooms on words.word_id = rooms.currWord_id WHERE room_id = ?', [player.room]);
+        rows[0] == null ? word_to_guess = '' : word_to_guess = rows[0].word;
+        console.log("word_to_guess: ", word_to_guess);
+
+        const [rowTime] = await pool.query('SELECT currRound_timestamp FROM rooms WHERE room_id = ?', [player.room]);
+        // Calculate remaining time
+        const currTime = new Date();
+        const roundTime = new Date(rowTime[0].currRound_timestamp);
+        const timeDiff = currTime - roundTime;
+        const remainingTime = 60 - Math.floor(timeDiff / 1000);
+
 
         // add isDrawing field to each player in each team
         team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
@@ -182,7 +194,9 @@ app.use(async (req, res, next) => {
             team2Score: team2Score[0].team2_score,
             playerId: player.id,
             currPlayerId: currPlayer_id[0].currPlayer_id,
-            canvasData: canvasData
+            canvasData: canvasData,
+            word_to_guess: word_to_guess,
+            remainingTime: remainingTime
         });
     }
 
@@ -229,6 +243,7 @@ app.get('/room-create', async (req, res) => {
     console.log("GET/room-create");
     try {
         console.log("room create sql start")
+        roomWords[roomId] = [];
         const [results, _] = await pool.query('INSERT INTO rooms (room_id, playing, owner) VALUES (NULL, FALSE, ? );', [playerId]);
         roomId = results.insertId;
         console.log("room_id: ", roomId);
@@ -323,11 +338,38 @@ const startRoundTimer = (roomId) => {
             team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
             team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
 
+            const [rows] = await pool.query('SELECT word, word_id FROM words');
+            // Losowy wybór słowa z listy
+            const randomIndex = Math.floor(Math.random() * rows.length);
+            let word_index = rows[randomIndex].word_id;
+
+            if (!roomWords[roomId]) {
+                roomWords[roomId] = [];
+            }
+
+            if(  word_index in roomWords[roomId]  ) //sprawdz czy juz bylo to slowo
+            {
+                while( word_index in roomWords[roomId] )
+                {
+                    randomIndex = Math.floor(Math.random() * rows.length);
+                    word_index = rows[randomIndex].word_id;
+                }
+            }
+            roomWords[roomId].push(word_index);//dodaj id slowo do tablicy
+            await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
+            const word_to_guess = rows[randomIndex].word; // wylosowane słowo przygotuj do przesłania do klienta
+
+            await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [ roomId]);
+
+            console.log('Word to guess:', word_to_guess);
+
             // Wysłanie informacji o nowej rundzie do graczy w pokoju
             io.to(roomId).emit('new-round', { 
                 team1: team1Players,
                 team2: team2Players,
-                currPlayerId: currPlayer_id
+                currPlayerId: currPlayer_id,
+                word_to_guess: word_to_guess,
+                remainingTime: 60,
             });
             io.to(roomId).emit("message", { clearCanvas: true });
 
