@@ -96,6 +96,40 @@ let playerData = async (playerId) =>
     }
 };
 
+let updateWordinRoom = async (roomId) =>
+{
+    try
+    {
+        const [rows] = await pool.query('SELECT word, word_id FROM words');
+        // Losowy wybór słowa z listy
+        let randomIndex = Math.floor(Math.random() * rows.length);
+        let word_index = rows[randomIndex].word_id;
+
+        if (!roomWords[roomId]) {
+            roomWords[roomId] = [];
+        }
+
+        // Sprawdź, czy słowo już było
+        if (roomWords[roomId].includes(word_index)) {
+            while (roomWords[roomId].includes(word_index)) {
+                randomIndex = Math.floor(Math.random() * rows.length);
+                word_index = rows[randomIndex].word_id;
+            }
+        }
+        roomWords[roomId].push(word_index); // Dodaj id słowo do tablicy
+
+        await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
+        const word_to_guess = rows[randomIndex].word; // Wylosowane słowo przygotuj do zwrócenia
+        console.log('Word to guess inside a function:', word_to_guess);
+        return word_to_guess;
+    }
+    catch(error)
+    {
+        console.error('Error updating word:', error);
+        return null;
+    }
+}
+
 let roomIdisNull = async (playerId) => {
     try {
         const [results, _] = await pool.query('SELECT 1 FROM players p inner join rooms r on p.room_id = r.room_id WHERE player_id = ? AND p.room_id IS NOT NULL', [playerId]);
@@ -368,6 +402,9 @@ const startRoundTimer = (roomId) => {
 
             console.log('Word to guess:', word_to_guess);
 
+            const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [roomId]);
+            const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [roomId]);
+
             // Wysłanie informacji o nowej rundzie do graczy w pokoju
             io.to(roomId).emit('new-round', { 
                 team1: team1Players,
@@ -375,6 +412,8 @@ const startRoundTimer = (roomId) => {
                 currPlayerId: currPlayer_id,
                 word_to_guess: word_to_guess,
                 remainingTime: 60,
+                team1Score: team1Score[0].team1_score,
+                team2Score: team2Score[0].team2_score
             });
 
             io.to(roomId).emit("message", { clearCanvas: true });
@@ -538,6 +577,26 @@ io.on('connection', async (socket) => {
             {
                 await pool.query('UPDATE rooms SET team1_score = team1_score + 1 WHERE room_id = ?', [Player.room]);
             }
+            let word_to_guess = await updateWordinRoom(Player.room);
+            // get players from the room
+            const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [Player.room]);
+            const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [Player.room]);
+            const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [Player.room]);
+            const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [Player.room]);
+            const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [Player.room]);
+
+            // add isDrawing field to each player in each team
+            team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+            team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
+            console.log("word_to_guess ready to sent: ", word_to_guess);
+            io.to(Player.room).emit('new-word', { 
+                word_to_guess: word_to_guess,
+                team1Score: team1Score[0].team1_score,
+                team2Score: team2Score[0].team2_score,
+                team1: team1Players,
+                team2: team2Players,
+                currPlayerId: currPlayer_id[0].currPlayer_id
+            });
         }
     });
     

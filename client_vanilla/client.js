@@ -111,6 +111,43 @@ document.addEventListener('DOMContentLoaded', () => {
   startTimer(remainingTime);
 });
 
+socket.on("new-word", (data) => {
+  console.log("new-word", data);
+
+  let template = `
+      <div class="team">
+          <h3>Team 1 ({{team1Score}} points)</h3>
+          <ul>
+              {{#team1}}
+              <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+              {{/team1}}
+          </ul>
+      </div>
+      <div class="team">
+          <h3>Team  ({{team2Score}} points)</h3>
+          <ul>
+              {{#team2}}
+              <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
+              {{/team2}}
+          </ul>
+      </div>
+  `;
+
+  let rendered = Mustache.render(template, data);
+  document.getElementById('team-list').innerHTML = rendered;
+  console.log("new-word", data);
+  console.log("new-word-to-guess", data.word_to_guess);
+  template = `
+      <div class="word">
+          <h3>Hasło: {{word_to_guess}}</h3>
+      </div>
+  `;
+  rendered = Mustache.render(template, data);
+  document.getElementById('word-to-guess').innerHTML = rendered;
+
+
+});
+
 socket.on("new-round", (data) => {
   console.log("new-round", data);
   canvasDatas = ['', '', '', '', ''];
@@ -119,7 +156,7 @@ socket.on("new-round", (data) => {
 
   const template = `
       <div class="team">
-          <h3>Team 1</h3>
+          <h3>Team 1 ({{team1Score}} points)</h3>
           <ul>
               {{#team1}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -127,7 +164,7 @@ socket.on("new-round", (data) => {
           </ul>
       </div>
       <div class="team">
-          <h3>Team 2</h3>
+          <h3>Team  ({{team2Score}} points)</h3>
           <ul>
               {{#team2}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -272,5 +309,14 @@ strokeColorInput.addEventListener("change", (e) => {
 
 awardPointButton.addEventListener('click', function() {
   // Emit an event to notify the server that a point should be awarded
-  socket.emit('award-point', {});
+  const token = getCookieValue('playerId');
+  if (!token) {
+    console.error('Ciasteczko playerId nie istnieje');
+    return; // Przerwij dalsze wykonanie, jeśli ciasteczko nie istnieje
+  }
+
+  const myPlayerId = parseJwt(token);
+  const val = myPlayerId.value;
+  console.log('Emitting award-point event with player ID:', val);
+  socket.emit('award-point', { val });
 });
