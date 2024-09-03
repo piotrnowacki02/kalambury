@@ -340,26 +340,31 @@ const startRoundTimer = (roomId) => {
 
             const [rows] = await pool.query('SELECT word, word_id FROM words');
             // Losowy wybór słowa z listy
-            const randomIndex = Math.floor(Math.random() * rows.length);
+            let randomIndex = Math.floor(Math.random() * rows.length);
             let word_index = rows[randomIndex].word_id;
 
             if (!roomWords[roomId]) {
                 roomWords[roomId] = [];
             }
+            console.log("roomWords[", roomId, "]: ", roomWords[roomId]);
 
-            if(  word_index in roomWords[roomId]  ) //sprawdz czy juz bylo to slowo
-            {
-                while( word_index in roomWords[roomId] )
-                {
+            // Sprawdź, czy słowo już było
+            if (roomWords[roomId].includes(word_index)) {
+                while (roomWords[roomId].includes(word_index)) {
+                    console.log("word_index: ", word_index);
                     randomIndex = Math.floor(Math.random() * rows.length);
                     word_index = rows[randomIndex].word_id;
                 }
+                console.log("word_index after loop: ", word_index);
             }
-            roomWords[roomId].push(word_index);//dodaj id slowo do tablicy
-            await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
-            const word_to_guess = rows[randomIndex].word; // wylosowane słowo przygotuj do przesłania do klienta
 
-            await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [ roomId]);
+            console.log("word_index FINAL: ", word_index);
+            roomWords[roomId].push(word_index); // Dodaj id słowo do tablicy
+
+            await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
+            const word_to_guess = rows[randomIndex].word; // Wylosowane słowo przygotuj do przesłania do klienta
+
+            await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [roomId]);
 
             console.log('Word to guess:', word_to_guess);
 
@@ -371,6 +376,7 @@ const startRoundTimer = (roomId) => {
                 word_to_guess: word_to_guess,
                 remainingTime: 60,
             });
+
             io.to(roomId).emit("message", { clearCanvas: true });
 
             // Uruchomienie timera dla nowej rundy
@@ -513,6 +519,25 @@ io.on('connection', async (socket) => {
         const room = rooms[1]; // Assuming room is the second item (first is socket id)
         if (room) {
             roomCanvases[room] = canvasData; // Store the canvas data for the room
+        }
+    });
+
+    socket.on('award-point', async (playerId) => {
+        console.log("playerId: ", playerId);
+        const Player = await playerData(playerId.val);
+        const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [Player.room]);
+        const [currPlayer_team] = await pool.query('SELECT team_id FROM players WHERE player_id = ?', [currPlayer_id[0].currPlayer_id]);
+        console.log("currPlayer_team: ", currPlayer_team[0].team_id);
+        if(Player.team != currPlayer_team[0].team_id)
+        {
+            if(Player.team == 1)
+            {
+                await pool.query('UPDATE rooms SET team2_score = team2_score + 1 WHERE room_id = ?', [Player.room]);
+            }
+            else
+            {
+                await pool.query('UPDATE rooms SET team1_score = team1_score + 1 WHERE room_id = ?', [Player.room]);
+            }
         }
     });
     
