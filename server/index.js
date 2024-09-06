@@ -465,6 +465,7 @@ io.on('connection', async (socket) => {
         // Verify JWT token
         const decoded = jwt.verify(playerIdToken, SECRET_KEY);
         const playerId = decoded.value;
+        socket.playerId = playerId;
         let roomId;
 
         try {
@@ -484,6 +485,7 @@ io.on('connection', async (socket) => {
 
         if (roomId) {
             // Join the socket to the room
+            socket.roomId = roomId;
             socket.join(roomId);
             console.log(`User with player ID ${playerId} joined room ${roomId}`);
 
@@ -504,8 +506,8 @@ io.on('connection', async (socket) => {
     }
 
     socket.on('message', (msg) => {
-        if (roomId) {
-            socket.to(roomId).emit('message', msg);
+        if (socket.roomId) {
+            socket.to(socket.roomId).emit('message', msg);
         }
     });
 
