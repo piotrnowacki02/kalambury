@@ -276,6 +276,18 @@ canvas.addEventListener("contextmenu", (e) => {
   e.preventDefault(); // Zablokuj domyślne menu kontekstowe
 });
 
+readyButton.addEventListener("click", () => {
+  const token = getCookieValue('playerId');
+  if (!token) {
+    console.error('Ciasteczko playerId nie istnieje');
+    return; // Przerwij dalsze wykonanie, jeśli ciasteczko nie istnieje
+  }
+
+  const myPlayerId = parseJwt(token);
+  const val = myPlayerId.value;
+  socket.emit("ready", { val });
+});
+
 undoButton.addEventListener("click", () => {
   console.log("undo, length: ", canvasDatas.length);
   if(canvasDatas.length <= 1) {

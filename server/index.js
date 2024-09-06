@@ -518,19 +518,18 @@ io.on('connection', async (socket) => {
             }
     
             const [playersToSort] = await pool.query('SELECT player_id FROM players WHERE room_id = ?', [roomId]);
-            let round = 1;
+            let round = 0;
             await pool.query('UPDATE rooms SET round = ? WHERE room_id = ?', [round, roomId]);
             await pool.query('UPDATE rooms SET playing = TRUE WHERE room_id = ?', [roomId]);
             
-            const shuffledPlayers = playersToSort.sort(() => Math.random() - 0.5);
+            const shuffledPlayers = playersToSort.sort(() => Math.random() - 0.5); // Shuffle players and assign teams
             const half = Math.floor(playersToSort.length / 2);
-            
             for (let i = 0; i < shuffledPlayers.length; i++) {
                 const team = i < half ? 1 : 2;
                 await pool.query('UPDATE players SET team_id = ? WHERE player_id = ?', [team, shuffledPlayers[i].player_id]);
             }
     
-            // select players from the room from team 1
+            // select players from the room from team 1 and 2
             const [team1Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
             const [team2Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
     
@@ -544,7 +543,7 @@ io.on('connection', async (socket) => {
                 console.log("No players found in team 1 for room", roomId);
             }
     
-            // Emit team assignments to clients
+            // Redirect clients to the game page
             io.to(roomId).emit('lets-play');
             startRoundTimer(roomId);
             console.log(`Emitting 'lets-play' to room ${roomId}`);
