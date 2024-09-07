@@ -194,7 +194,7 @@ app.use(async (req, res, next) => {
         {
             return res.render('room', {roomId: room.id});
         }
-
+        // GET/ - main page  index.html 
         const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [player.room]);
         const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [player.room]);
 
@@ -209,10 +209,21 @@ app.use(async (req, res, next) => {
 
         const [rowTime] = await pool.query('SELECT currRound_timestamp FROM rooms WHERE room_id = ?', [player.room]);
         // Calculate remaining time
+        const timeForOneRound = 60; // 60 seconds for one round later get it from the database field round_duration for the room 
         const currTime = new Date();
         const roundTime = new Date(rowTime[0].currRound_timestamp);
         const timeDiff = currTime - roundTime;
-        const remainingTime = 60 - Math.floor(timeDiff / 1000);
+        const [roundNumber] = await pool.query('SELECT round FROM rooms WHERE room_id = ?', [player.room]);
+        let remainingTime;
+        if(roundNumber[0].round == 0)
+        {
+            remainingTime = 10 - Math.floor(timeDiff / 1000);
+        }
+        else
+        {
+            remainingTime = timeForOneRound - Math.floor(timeDiff / 1000);
+        }
+            
 
 
         // add isDrawing field to each player in each team
@@ -428,7 +439,7 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
         } catch (error) {
             console.error(`Error updating round for room ${roomId}:`, error);
         }
-    }, duration); // Use the calculated duration
+    }, duration+1000); // +1s bo tak
 
     // Save the timer in the map
     roomTimers.set(roomId, timer);
@@ -549,7 +560,9 @@ io.on('connection', async (socket) => {
             } else {
                 console.log("No players found in team 1 for room", roomId);
             }
-    
+            // set the current round timestamp to now
+            await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [roomId]);
+
             // Redirect clients to the game page
             io.to(roomId).emit('lets-play');
             startRoundTimer(roomId);
