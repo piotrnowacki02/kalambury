@@ -1,16 +1,32 @@
 <html>
 <head><title>Kalambury</title></head>
 <body>
-    <h1>Pokój: </h1>
-    <p id="roomId">{{roomId}}</p>
-    <button onclick="copyToClipboard()">Kopiuj</button>
-    <div id="player-list">
-        <h3>Gracze w pokoju:</h3>
-        {{#players}}
-            <p>{{name}}</p>
-        {{/players}}
+    <div id="main">
+
+        <div id="left-panel">
+            <h1>Pokój: </h1>
+            <p id="roomId">{{roomId}}</p>
+            <button onclick="copyToClipboard()">Kopiuj</button>
+            <div id="player-list">
+                <h3>Gracze w pokoju:</h3>
+                {{#players}}
+                    <p>{{name}}</p>
+                {{/players}}
+            </div>
+            <button onclick="startGame()">Play</button>
+        </div>
+    
+        <div id="right-panel">
+            <button onclick="showSettings()">Settings</button>
+            <div id="settings" style="display: none;">
+                <h3>Ustawienia:</h3>
+                <label for="roundTime">Czas na rundę:</label>
+                <input type="number" id="roundTime" value="60">
+            </div>
+        </div>
+
     </div>
-    <button onclick="startGame()">Play</button>
+
     <script src="http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.8.1/mustache.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -22,6 +38,11 @@
             }).catch(err => {
                 console.error('Błąd kopiowania: ', err);
             });
+        }
+        
+        function showSettings() {
+            const settingsDiv = document.getElementById('settings');
+            settingsDiv.style.display = settingsDiv.style.display === 'none' ? 'block' : 'none';
         }
         
         const socket = io();
@@ -51,5 +72,15 @@
             socket.emit('start-game', roomId);
         }
     </script>
+    <style>
+        #main 
+        {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: row;
+            margin: auto;
+        }
+    </style>
 </body>
 </html>
