@@ -325,37 +325,37 @@ app.use(express.static(path.join(__dirname, '..', 'client_vanilla')));
 
 // Mapa do przechowywania timerów dla każdego pokoju
 const roomTimers = new Map();
+const firstTimers = new Map(); // To track the first timer per room
 
-function div(a, b)
-{
-    return (Math.round(a/b - 0.5));
+function div(a, b) {
+    return (Math.round(a / b - 0.5));
 }
 
-// Funkcja do uruchamiania timera rundy
-const startRoundTimer = (roomId) => {
-    // Jeśli istnieje poprzedni timer dla tego pokoju, anuluj go
+// Function to start the round timer
+const startRoundTimer = (roomId, timerDuration = 60000) => {
+    // If there is a previous timer for this room, cancel it
     if (roomTimers.has(roomId)) {
         clearTimeout(roomTimers.get(roomId));
     }
-    
-    // Ustawienie timera na 1 minutę (60000 ms)
+
+    // Determine the duration for the first timer (10 seconds for the first round)
+    let duration = firstTimers.has(roomId) ? timerDuration : 10000; // 10 seconds for the first timer
+
+    // Set up the round timer
     const timer = setTimeout(async () => {
         try {
-            // Zwiększenie rundy w bazie danych
+            // Increment round in the database
             const [result] = await pool.query('UPDATE rooms SET round = round + 1 WHERE room_id = ?', [roomId]);
             console.log(`Round updated for room ${roomId}`);
 
-            // Pobranie nowej wartości rundy
+            // Get the new round value
             const [roundResult] = await pool.query('SELECT round FROM rooms WHERE room_id = ?', [roomId]);
-            if(roundResult[0].round % 2 == 0) // round for team 2
-            {
+            if (roundResult[0].round % 2 == 0) { // Round for team 2
                 let currPlayer_id_in_db = div(roundResult[0].round, 2);
                 const [results, _] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
                 let currPlayer_id = results[currPlayer_id_in_db % results.length].player_id;
                 await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [currPlayer_id, roomId]);
-            }
-            else // round for team 1
-            {
+            } else { // Round for team 1
                 let currPlayer_id_in_db = div(roundResult[0].round, 2);
                 const [results, _] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
                 let currPlayer_id = results[currPlayer_id_in_db % results.length].player_id;
@@ -368,12 +368,12 @@ const startRoundTimer = (roomId) => {
 
             const [currPlayer_id] = await pool.query('SELECT currPlayer_id FROM rooms WHERE room_id = ?', [roomId]);
 
-            // add isDrawing field to each player in each team
+            // Add isDrawing field to each player in each team
             team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
             team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
 
             const [rows] = await pool.query('SELECT word, word_id FROM words');
-            // Losowy wybór słowa z listy
+            // Randomly select a word from the list
             let randomIndex = Math.floor(Math.random() * rows.length);
             let word_index = rows[randomIndex].word_id;
 
@@ -382,7 +382,7 @@ const startRoundTimer = (roomId) => {
             }
             console.log("roomWords[", roomId, "]: ", roomWords[roomId]);
 
-            // Sprawdź, czy słowo już było
+            // Check if the word has already been used
             if (roomWords[roomId].includes(word_index)) {
                 while (roomWords[roomId].includes(word_index)) {
                     console.log("word_index: ", word_index);
@@ -393,10 +393,10 @@ const startRoundTimer = (roomId) => {
             }
 
             console.log("word_index FINAL: ", word_index);
-            roomWords[roomId].push(word_index); // Dodaj id słowo do tablicy
+            roomWords[roomId].push(word_index); // Add the word ID to the array
 
             await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
-            const word_to_guess = rows[randomIndex].word; // Wylosowane słowo przygotuj do przesłania do klienta
+            const word_to_guess = rows[randomIndex].word; // Selected word to send to the client
 
             await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [roomId]);
 
@@ -405,27 +405,32 @@ const startRoundTimer = (roomId) => {
             const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [roomId]);
             const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [roomId]);
 
-            // Wysłanie informacji o nowej rundzie do graczy w pokoju
+            // Send information about the new round to the players in the room
             io.to(roomId).emit('new-round', { 
                 team1: team1Players,
                 team2: team2Players,
                 currPlayerId: currPlayer_id,
                 word_to_guess: word_to_guess,
-                remainingTime: 60,
+                remainingTime: duration / 1000, // Send the remaining time in seconds
                 team1Score: team1Score[0].team1_score,
                 team2Score: team2Score[0].team2_score
             });
 
             io.to(roomId).emit("message", { clearCanvas: true });
 
-            // Uruchomienie timera dla nowej rundy
-            startRoundTimer(roomId);
+            // Update the firstTimer flag so future timers use the normal duration
+            if (!firstTimers.has(roomId)) {
+                firstTimers.set(roomId, true); // First timer is now complete
+            }
+
+            // Start the next round timer
+            startRoundTimer(roomId, timerDuration);
         } catch (error) {
             console.error(`Error updating round for room ${roomId}:`, error);
         }
-    }, 60000);
+    }, duration); // Use the calculated duration
 
-    // Zapisanie timera w mapie
+    // Save the timer in the map
     roomTimers.set(roomId, timer);
 };
 
