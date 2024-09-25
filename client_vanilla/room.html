@@ -44,7 +44,7 @@
             const settingsDiv = document.getElementById('settings');
             settingsDiv.style.display = settingsDiv.style.display === 'none' ? 'block' : 'none';
         }
-        
+
         const socket = io();
 
         const updatePlayerList = (players) => {
@@ -67,9 +67,11 @@
         });
 
         function startGame() {
+            const roundTime = parseInt(document.getElementById("roundTime").value);
+
             const roomId = parseInt(document.getElementById("roomId").innerText);
             console.log(`Starting game in room ${roomId}`);
-            socket.emit('start-game', roomId);
+            socket.emit('start-game', roomId, roundTime);
         }
     </script>
     <style>

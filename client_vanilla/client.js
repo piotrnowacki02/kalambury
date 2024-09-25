@@ -83,10 +83,11 @@ socket.on("message", (incoming_buffer) => {
 });
 
 let countdownInterval;
-const timerDisplay = document.getElementById("timer");
+let timerDisplay = document.getElementById("timer");
 
 function startTimer(timeRemaining) {
   // Clear any existing interval
+  console.log("startTimer: ", timeRemaining);
   clearInterval(countdownInterval);
 
   countdownInterval = setInterval(() => {
@@ -101,7 +102,7 @@ function startTimer(timeRemaining) {
           clearInterval(countdownInterval);
           timerDisplay.textContent = "00:00";
       }
-
+      console.log("setting interval timeRemaining: ", timeRemaining);
       timeRemaining--;
   }, 1000);
 }
@@ -124,7 +125,7 @@ socket.on("new-word", (data) => {
           </ul>
       </div>
       <div class="team">
-          <h3>Team  ({{team2Score}} points)</h3>
+          <h3>Team 2 ({{team2Score}} points)</h3>
           <ul>
               {{#team2}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -145,16 +146,23 @@ socket.on("new-word", (data) => {
   rendered = Mustache.render(template, data);
   document.getElementById('word-to-guess').innerHTML = rendered;
 
+  template = `
+      <div id="timer" data-remaining-time="{{remainingTime}}" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+          00:00
+      </div>
+  `;
+  rendered = Mustache.render(template, data);
+  document.getElementById('timerArea').innerHTML = rendered;
 
 });
 
 socket.on("new-round", (data) => {
   console.log("new-round", data);
   canvasDatas = ['', '', '', '', ''];
-  const roundDuration = data.roundDuration || 60; // w przyszłości ustaw żeby serwer przesyłał czas rundy
+  const roundDuration = data.remainingTime || 60; // w przyszłości ustaw żeby serwer przesyłał czas rundy
   startTimer(roundDuration);
 
-  const template = `
+  let template = `
       <div class="team">
           <h3>Team 1 ({{team1Score}} points)</h3>
           <ul>
@@ -164,7 +172,7 @@ socket.on("new-round", (data) => {
           </ul>
       </div>
       <div class="team">
-          <h3>Team  ({{team2Score}} points)</h3>
+          <h3>Team 2 ({{team2Score}} points)</h3>
           <ul>
               {{#team2}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
@@ -173,7 +181,7 @@ socket.on("new-round", (data) => {
       </div>
   `;
 
-  const rendered = Mustache.render(template, data);
+  let rendered = Mustache.render(template, data);
   document.getElementById('team-list').innerHTML = rendered;
 
   const template2 = `
@@ -183,6 +191,16 @@ socket.on("new-round", (data) => {
   `;
   const rendered2 = Mustache.render(template2, data);
   document.getElementById('word-to-guess').innerHTML = rendered2;
+
+  template = `
+      <div id="timer" data-remaining-time="{{remainingTime}}" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+          00:00
+      </div>
+  `;
+  rendered = Mustache.render(template, data);
+  document.getElementById('timerArea').innerHTML = rendered;
+
+  timerDisplay = document.getElementById("timer");
 
   const token = getCookieValue('playerId');
   if (!token) {

@@ -209,7 +209,8 @@ app.use(async (req, res, next) => {
 
         const [rowTime] = await pool.query('SELECT currRound_timestamp FROM rooms WHERE room_id = ?', [player.room]);
         // Calculate remaining time
-        const timeForOneRound = 60; // 60 seconds for one round later get it from the database field round_duration for the room 
+        const [timeForOneRoundRows] = await pool.query('SELECT roundTime FROM rooms WHERE room_id = ?', [player.room]);
+        const timeForOneRound = timeForOneRoundRows[0].roundTime; 
         const currTime = new Date();
         const roundTime = new Date(rowTime[0].currRound_timestamp);
         const timeDiff = currTime - roundTime;
@@ -231,7 +232,7 @@ app.use(async (req, res, next) => {
         team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
 
         const canvasData = roomCanvases[player.room] || '';
-        console.log("canvasData: ", canvasData);
+        console.log("remainingTime: ", remainingTime);
         return res.render('index', {
             team1: team1Players,
             team2: team2Players,
@@ -351,7 +352,8 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
 
     // Determine the duration for the first timer (10 seconds for the first round)
     let duration = firstTimers.has(roomId) ? timerDuration : 10000; // 10 seconds for the first timer
-
+    firstTimers.set(roomId, true);// maybe delete this line
+    
     // Set up the round timer
     const timer = setTimeout(async () => {
         try {
@@ -372,7 +374,6 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
                 let currPlayer_id = results[currPlayer_id_in_db % results.length].player_id;
                 await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [currPlayer_id, roomId]);
             }
-            const newRound = roundResult[0].round;
 
             const [team1Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 1', [roomId]);
             const [team2Players] = await pool.query('SELECT player_id, name FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
@@ -416,7 +417,12 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
             const [team1Score] = await pool.query('SELECT team1_score FROM rooms WHERE room_id = ?', [roomId]);
             const [team2Score] = await pool.query('SELECT team2_score FROM rooms WHERE room_id = ?', [roomId]);
 
+            const [timeForOneRoundRows] = await pool.query('SELECT roundTime FROM rooms WHERE room_id = ?', [roomId]);
+
+            duration = (timeForOneRoundRows[0].roundTime)*1000; // Set the duration to the normal round time
+
             // Send information about the new round to the players in the room
+            console.log("remainingTime: ", duration / 1000);
             io.to(roomId).emit('new-round', { 
                 team1: team1Players,
                 team2: team2Players,
@@ -527,7 +533,7 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('start-game', async (roomId) => {
+    socket.on('start-game', async (roomId, roundTime) => {
         try {
             const [results] = await pool.query('Select count(*) from players where room_id = ?', [roomId]);
             if (results[0]['count(*)'] < 4) {
@@ -539,10 +545,12 @@ io.on('connection', async (socket) => {
             let round = 0;
             await pool.query('UPDATE rooms SET round = ? WHERE room_id = ?', [round, roomId]);
             await pool.query('UPDATE rooms SET playing = TRUE WHERE room_id = ?', [roomId]);
+            await pool.query('UPDATE rooms SET roundTime = ? WHERE room_id = ?', [roundTime, roomId]);
             
             const shuffledPlayers = playersToSort.sort(() => Math.random() - 0.5); // Shuffle players and assign teams
             const half = Math.floor(playersToSort.length / 2);
-            for (let i = 0; i < shuffledPlayers.length; i++) {
+            for (let i = 0; i < shuffledPlayers.length; i++) 
+            {
                 const team = i < half ? 1 : 2;
                 await pool.query('UPDATE players SET team_id = ? WHERE player_id = ?', [team, shuffledPlayers[i].player_id]);
             }
@@ -552,12 +560,15 @@ io.on('connection', async (socket) => {
             const [team2Players] = await pool.query('SELECT player_id FROM players WHERE room_id = ? AND team_id = 2', [roomId]);
     
             // check if there are any players in the result
-            if (team1Players.length > 0) {
+            if (team1Players.length > 0) 
+            {
                 // get the first player from team 1
                 const firstPlayer = team1Players[0]; // first element in the array
                 console.log("firstPlayer", firstPlayer);
                 await pool.query('UPDATE rooms SET currPlayer_id = ? WHERE room_id = ?', [firstPlayer.player_id, roomId]);
-            } else {
+            } 
+            else 
+            {
                 console.log("No players found in team 1 for room", roomId);
             }
             // set the current round timestamp to now
@@ -565,7 +576,7 @@ io.on('connection', async (socket) => {
 
             // Redirect clients to the game page
             io.to(roomId).emit('lets-play');
-            startRoundTimer(roomId);
+            startRoundTimer(roomId, roundTime*1000);
             console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
