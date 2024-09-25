@@ -239,7 +239,7 @@ const canvasOffsetY = canvas.offsetTop;
 
 const startDrawing = (e) => {
   const rect = canvas.getBoundingClientRect();
-  if (e.button === 0) {
+  if (e.button === 0 && isDrawer) {
     // Sprawdź, czy to lewy przycisk myszy
     isPainting = true;
     ctx.lineWidth = lineWidth;
@@ -307,6 +307,9 @@ readyButton.addEventListener("click", () => {
 });
 
 undoButton.addEventListener("click", () => {
+  if(!isDrawer) {
+    return;
+  }
   console.log("undo, length: ", canvasDatas.length);
   if(canvasDatas.length <= 1) {
     return;
@@ -323,16 +326,25 @@ undoButton.addEventListener("click", () => {
 });
 
 clearButton.addEventListener("click", () => {
+  if(!isDrawer) {
+    return;
+  }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   socket.emit("message", { clearCanvas: true });
 });
 
 lineWidthInput.addEventListener("change", (e) => {
+  if(!isDrawer) {
+    return;
+  }
   lineWidth = e.target.value;
   socket.emit("message", { lineWidth });
 });
 
 strokeColorInput.addEventListener("change", (e) => {
+  if(!isDrawer) {
+    return;
+  }
   strokeStyle = e.target.value;
   socket.emit("message", { color: strokeStyle });
 });
