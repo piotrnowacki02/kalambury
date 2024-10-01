@@ -3,20 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalambury</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" 
-    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>Kalambury - Wybór Pokoju</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #24273a;
+            color: #f0f0f0;
+        }
+        .form-control, .btn {
+            background-color: #393e5a;
+            border-color: #393e5a;
+            color: #f0f0f0;
+        }
+        .btn-primary, .btn-success {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-md-6">
-                <a href="/room-create" class="btn btn-success mb-3">Stwórz pokój</a>
+                <a href="/room-create" class="btn btn-success">Stwórz pokój</a>
             </div>
         </div>
         <div class="row">
             <div class="col-md-6">
-                <form method="post" action="/room-join" class="form-inline">
+                <form method="post" action="/room-join">
                     <div class="mb-3">
                         <label for="room-id" class="form-label">Numer pokoju:</label>
                         <input type="number" class="form-control" id="room-id" name="room-id" placeholder="Wprowadź numer pokoju" required>
@@ -27,7 +41,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
