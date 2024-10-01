@@ -146,13 +146,13 @@ socket.on("new-word", (data) => {
   rendered = Mustache.render(template, data);
   document.getElementById('word-to-guess').innerHTML = rendered;
 
-  template = `
-      <div id="timer" data-remaining-time="{{remainingTime}}"  class="text-center"">
-          00:00
-      </div>
-  `;
-  rendered = Mustache.render(template, data);
-  document.getElementById('timerArea').innerHTML = rendered;
+  // template = `
+  //     <div id="timer" data-remaining-time="{{remainingTime}}"  class="text-center"">
+  //         00:00
+  //     </div>
+  // `;
+  // rendered = Mustache.render(template, data);
+  // document.getElementById('timerArea').innerHTML = rendered;
 
 });
 
