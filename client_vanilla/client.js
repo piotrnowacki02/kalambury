@@ -116,9 +116,9 @@ socket.on("new-word", (data) => {
   console.log("new-word", data);
 
   let template = `
-      <div class="team">
+      <div class="team mb-3">
           <h3>Team 1 ({{team1Score}} points)</h3>
-          <ul>
+          <ul class="list-unstyled">
               {{#team1}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
               {{/team1}}
@@ -126,7 +126,7 @@ socket.on("new-word", (data) => {
       </div>
       <div class="team">
           <h3>Team 2 ({{team2Score}} points)</h3>
-          <ul>
+          <ul class="list-unstyled">
               {{#team2}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
               {{/team2}}
@@ -139,7 +139,7 @@ socket.on("new-word", (data) => {
   console.log("new-word", data);
   console.log("new-word-to-guess", data.word_to_guess);
   template = `
-      <div class="word">
+      <div class="word" class="text-center mb-3">
           <h3>Hasło: {{word_to_guess}}</h3>
       </div>
   `;
@@ -147,7 +147,7 @@ socket.on("new-word", (data) => {
   document.getElementById('word-to-guess').innerHTML = rendered;
 
   template = `
-      <div id="timer" data-remaining-time="{{remainingTime}}" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+      <div id="timer" data-remaining-time="{{remainingTime}}"  class="text-center"">
           00:00
       </div>
   `;
@@ -163,9 +163,9 @@ socket.on("new-round", (data) => {
   startTimer(roundDuration);
 
   let template = `
-      <div class="team">
+      <div class="team mb-3">
           <h3>Team 1 ({{team1Score}} points)</h3>
-          <ul>
+          <ul class="list-unstyled">
               {{#team1}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
               {{/team1}}
@@ -173,7 +173,7 @@ socket.on("new-round", (data) => {
       </div>
       <div class="team">
           <h3>Team 2 ({{team2Score}} points)</h3>
-          <ul>
+          <ul class="list-unstyled">
               {{#team2}}
               <li class="{{#isDrawing}}highlight{{/isDrawing}}">{{name}}</li>
               {{/team2}}
@@ -185,7 +185,7 @@ socket.on("new-round", (data) => {
   document.getElementById('team-list').innerHTML = rendered;
 
   const template2 = `
-      <div class="word">
+      <div class="word" class="text-center mb-3">
           <h3>Hasło: {{word_to_guess}}</h3>
       </div>
   `;
@@ -193,7 +193,7 @@ socket.on("new-round", (data) => {
   document.getElementById('word-to-guess').innerHTML = rendered2;
 
   template = `
-      <div id="timer" data-remaining-time="{{remainingTime}}" style="font-size: 24px; color: #f5a97f; margin-bottom: 10px;">
+      <div id="timer" data-remaining-time="{{remainingTime}}" class="text-center">
           00:00
       </div>
   `;
