@@ -16,7 +16,7 @@ let roomWords = {};
 const pool = createPool({
     host: 'localhost',
     user: 'root',
-    password: '',
+    password: 'my-secret-pw',
     database: 'kalambury',
     connectionLimit: 10
 });
@@ -533,11 +533,16 @@ io.on('connection', async (socket) => {
         }
     });
 
-    socket.on('start-game', async (roomId, roundTime) => {
+    socket.on('start-game', async (roomId, roundTime, playerId_var) => {
         try {
             const [results] = await pool.query('Select count(*) from players where room_id = ?', [roomId]);
             if (results[0]['count(*)'] < 4) {
                 console.log("Not enough players to start game");
+                return;
+            }
+            const [results2] = await pool.query('Select owner from rooms where room_id = ?', [roomId]);
+            if (results2[0].owner != playerId_var) {
+                console.log("Only the owner can start the game");
                 return;
             }
     
@@ -575,8 +580,8 @@ io.on('connection', async (socket) => {
             await pool.query('UPDATE rooms SET currRound_timestamp = NOW() WHERE room_id = ?', [roomId]);
 
             // Redirect clients to the game page
-            io.to(roomId).emit('lets-play');
             startRoundTimer(roomId, roundTime*1000);
+            io.to(roomId).emit('lets-play');
             console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
