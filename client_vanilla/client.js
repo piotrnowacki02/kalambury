@@ -6,7 +6,12 @@ const ctx = canvas.getContext("2d");
 let outgoing_buffer = [];
 const START_OF_BUFFER = 0;
 let isDrawer = false;
-let canvasDatas = ['', '', '', '', ''];
+let canvasDatas;
+if(canvasDatas)
+{
+  canvasDatas = ['', '', '', '', ''];
+} 
+
 
 
 function parseJwt(token) {

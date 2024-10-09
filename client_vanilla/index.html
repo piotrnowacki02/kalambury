@@ -110,20 +110,29 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded and parsed');
+            
+            // Parse canvasData from the server (it's an array now)
+            const serverCanvasDataArray  = {{{canvasData}}};
+            console.log('canvasData', serverCanvasDataArray );
+        
+            if (serverCanvasDataArray  && serverCanvasDataArray .length > 0) {
+                // Set up canvasDatas for the client
+                canvasDatas = serverCanvasDataArray;
 
-            // Load the canvas data from the server
-            const canvasData = "{{{canvasData}}}";
-            console.log('canvasData', canvasData);
-            if (canvasData) {
+                // Get the newest canvas (last item in the array)
+                const newestCanvas = serverCanvasDataArray [serverCanvasDataArray .length - 1];
+        
+                // Set up canvas context
                 const canvas = document.getElementById('canvas');
                 const ctx = canvas.getContext('2d');
                 const img = new Image();
                 img.onload = function() {
                     ctx.drawImage(img, 0, 0);
                 };
-                img.src = canvasData;
+                img.src = newestCanvas;
             }
         });
+        
     </script>
 </body>
 </html>

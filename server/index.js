@@ -207,13 +207,15 @@ app.use(async (req, res, next) => {
         rows[0] == null ? word_to_guess = '' : word_to_guess = rows[0].word;
         console.log("word_to_guess: ", word_to_guess);
 
-        const [rowTime] = await pool.query('SELECT currRound_timestamp FROM rooms WHERE room_id = ?', [player.room]);
+        const [rowTimestamp] = await pool.query('SELECT currRound_timestamp FROM rooms WHERE room_id = ?', [player.room]);
         // Calculate remaining time
         const [timeForOneRoundRows] = await pool.query('SELECT roundTime FROM rooms WHERE room_id = ?', [player.room]);
         const timeForOneRound = timeForOneRoundRows[0].roundTime; 
         const currTime = new Date();
-        const roundTime = new Date(rowTime[0].currRound_timestamp);
+        const roundTime = new Date(rowTimestamp[0].currRound_timestamp);
+        console.log("roundTime: ", roundTime);
         const timeDiff = currTime - roundTime;
+        console.log("timeDiff: ", timeDiff);
         const [roundNumber] = await pool.query('SELECT round FROM rooms WHERE room_id = ?', [player.room]);
         let remainingTime;
         if(roundNumber[0].round == 0)
@@ -231,7 +233,7 @@ app.use(async (req, res, next) => {
         team1Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
         team2Players.forEach(player => player.isDrawing = player.player_id === currPlayer_id[0].currPlayer_id);
 
-        const canvasData = roomCanvases[player.room] || '';
+        const canvasData = roomCanvases[player.room] || [];
         console.log("remainingTime: ", remainingTime);
         return res.render('index', {
             team1: team1Players,
@@ -240,7 +242,7 @@ app.use(async (req, res, next) => {
             team2Score: team2Score[0].team2_score,
             playerId: player.id,
             currPlayerId: currPlayer_id[0].currPlayer_id,
-            canvasData: canvasData,
+            canvasData: JSON.stringify(canvasData),
             word_to_guess: word_to_guess,
             remainingTime: remainingTime
         });
@@ -592,7 +594,18 @@ io.on('connection', async (socket) => {
         const rooms = Array.from(socket.rooms);
         const room = rooms[1]; // Assuming room is the second item (first is socket id)
         if (room) {
-            roomCanvases[room] = canvasData; // Store the canvas data for the room
+            // Ensure the room has a canvas queue
+            if (!roomCanvases[room]) {
+                roomCanvases[room] = [];
+            }
+
+            // Add the new canvas data to the end of the array
+            roomCanvases[room].push(canvasData);
+
+            // If the room has more than 5 canvases, remove the oldest one
+            if (roomCanvases[room].length > 5) {
+                roomCanvases[room].shift();
+            }
         }
     });
 
