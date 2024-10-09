@@ -211,17 +211,6 @@ socket.on("new-round", (data) => {
 });
 
 
-
-socket.on('canvas-state-request', () => {
-    console.log('Sending canvas state to server');
-    if (isDrawer) {
-        // Convert the canvas to a data URL
-        const canvasDataUrl = canvas.toDataURL();
-        socket.emit('canvas-state-update', canvasDataUrl);
-    }
-});
-
-
 // Example function that sets the client as the drawer
 function setAsDrawer(isDrawing) {
     isDrawer = isDrawing;
@@ -280,6 +269,8 @@ const stopDrawing = (e) => {
     }
     canvasDatas.push(canvas.toDataURL());
     socket.emit("message", { canvasDataUrl: canvas.toDataURL() });
+    const canvasDataUrl = canvas.toDataURL();
+    socket.emit('canvas-state-update', canvasDataUrl);
   }
 };
 

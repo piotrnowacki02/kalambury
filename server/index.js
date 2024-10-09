@@ -456,12 +456,6 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
 let roomCanvases = {}; // To store canvas data for each room
 
 // Emit canvas-state-request every 3 seconds to each room
-setInterval(() => {
-    const rooms = io.sockets.adapter.rooms;
-    for (const room of rooms) {
-        io.to(room[0]).emit('canvas-state-request');
-    }
-}, 3000);
 
 io.on('connection', async (socket) => {
     console.log('a user connected');
