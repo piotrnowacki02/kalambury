@@ -327,6 +327,7 @@ lineWidthInput.addEventListener("change", (e) => {
   }
   lineWidth = e.target.value;
   socket.emit("message", { lineWidth });
+  socket.emit('stroke-width-change', { lineWidth });
 });
 
 strokeColorInput.addEventListener("change", (e) => {
@@ -335,6 +336,7 @@ strokeColorInput.addEventListener("change", (e) => {
   }
   strokeStyle = e.target.value;
   socket.emit("message", { color: strokeStyle });
+  socket.emit('color-change', { color: strokeStyle });
 });
 
 awardPointButton.addEventListener('click', function() {

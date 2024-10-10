@@ -244,7 +244,9 @@ app.use(async (req, res, next) => {
             currPlayerId: currPlayer_id[0].currPlayer_id,
             canvasData: JSON.stringify(canvasData),
             word_to_guess: word_to_guess,
-            remainingTime: remainingTime
+            remainingTime: remainingTime,
+            color: roomColors[player.room] || '#cad3f5',
+            strokeWidth: roomStrokeWidths[player.room] || 5
         });
     }
 
@@ -454,6 +456,8 @@ const startRoundTimer = (roomId, timerDuration = 60000) => {
 };
 
 let roomCanvases = {}; // To store canvas data for each room
+let roomColors = {}; // To store color data for each room
+let roomStrokeWidths = {}; // To store stroke width data for each room
 
 // Emit canvas-state-request every 3 seconds to each room
 
@@ -581,6 +585,18 @@ io.on('connection', async (socket) => {
             console.log(`Emitting 'lets-play' to room ${roomId}`);
         } catch (error) {
             console.error('Error starting game:', error);
+        }
+    });
+
+    socket.on('color-change', (data) => {
+        if (socket.roomId) {
+            roomColors[socket.roomId] = data.color;
+        }
+    });
+
+    socket.on('stroke-width-change', (data) => {
+        if (socket.roomId) {
+            roomStrokeWidths[socket.roomId] = data.lineWidth;
         }
     });
 
