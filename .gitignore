@@ -1,8 +1,9 @@
 # Node.js modules
+/node_modules/
 /*/node_modules/
 
 # intro react
 /intro_react/
 
 #docker
-/.docker-compose.yml
+docker-compose.yml
