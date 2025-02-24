@@ -1,6 +1,19 @@
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = 'I love you dude. Let it rip';
 
+function isPlayerCookieValid(req) {
+    if (!req.cookies.playerId) {
+        return false;
+    }
+    
+    try {
+        jwt.verify(req.cookies.playerId, SECRET_KEY);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
 function setPlayerCookie(res, playerId) {
     try {
         const token = jwt.sign({ value: playerId }, SECRET_KEY, { expiresIn: '1h' });
@@ -33,5 +46,6 @@ function getPlayerIdFromCookies(req, res) {
 
 module.exports = {
     setPlayerCookie,
-    getPlayerIdFromCookies
+    getPlayerIdFromCookies,
+    isPlayerCookieValid
 };

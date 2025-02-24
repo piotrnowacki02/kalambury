@@ -62,6 +62,37 @@ async function roomIdIsNull(playerId) {
     }
 }
 
+async function insertNewPlayer() {
+    try {
+        const [result] = await pool.query('INSERT INTO players SET ?', { name: null, room_id: null });
+        return result.insertId;
+    } catch (error) {
+        console.error('Error inserting new player:', error);
+        return null;
+    }
+}
+
+async function setPlayerName(playerId, name) {
+    try {
+        await pool.query('UPDATE players SET name = ? WHERE player_id = ?', [name, playerId]);
+    } catch (error) {
+        console.error('Error setting player name:', error);
+    }
+}
+
+async function playerJoinRoom(playerId, roomId) {
+    try {
+        await pool.query('UPDATE players SET room_id = ? WHERE player_id = ?', [roomId, playerId]);
+    } catch (error) {
+        console.error('Error joining room:', error);
+    }
+}
+
+async function getRoomPlayers(roomId) {
+    const [rows] = await pool.query('SELECT * FROM players WHERE room_id = ?', [roomId]);
+    return rows;
+}
+
 module.exports = {
     getRooms,
     getRoom,
@@ -69,5 +100,9 @@ module.exports = {
     getPlayer,
     updateWordInRoom,
     playerNameIsNull,
-    roomIdIsNull
+    roomIdIsNull,
+    insertNewPlayer,
+    setPlayerName,
+    playerJoinRoom,
+    getRoomPlayers
 };
