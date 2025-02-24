@@ -10,18 +10,18 @@ router.get('/', async (req, res) => {
     let playerId = cookieManager.getPlayerIdFromCookies(req, res);
 
     const player = await db.getPlayer(playerId);
-    const room = await db.getRoom(player.roomId);
+    const room = await db.getRoom(player.room_id);
 
     if (!room.playing) {
         return res.render('room', { roomId: room.id });
     }
 
-    const team1Players = await db.getTeamPlayers(player.room, 1);
-    const team2Players = await db.getTeamPlayers(player.room, 2);
+    const team1Players = await db.getTeamPlayers(player.room_id, 1);
+    const team2Players = await db.getTeamPlayers(player.room_id, 2);
     const currPlayerId = room.currPlayerId;
     const team1Score = room.team1Score;
     const team2Score = room.team2Score;
-    const wordToGuess = await db.getCurrentWord(player.room);
+    const wordToGuess = await db.getCurrentWord(player.room_id);
     const roundTimestamp = room.currRound_timestamp;
     const roundTime = room.roundTime;
     const roundNumber = room.round;
@@ -34,9 +34,9 @@ router.get('/', async (req, res) => {
     team1Players.forEach(player => player.isDrawing = player.player_id === currPlayerId);
     team2Players.forEach(player => player.isDrawing = player.player_id === currPlayerId);
 
-    const canvasData = await db.getCanvasData(player.room);
-    const color = await db.getRoomColor(player.room);
-    const strokeWidth = await db.getRoomStrokeWidth(player.room);
+    const canvasData = await db.getCanvasData(player.room_id);
+    const color = await db.getRoomColor(player.room_id);
+    const strokeWidth = await db.getRoomStrokeWidth(player.room_id);
 
     return res.render('index', {
         team1: team1Players,
