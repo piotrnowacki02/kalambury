@@ -18,8 +18,8 @@ async function getRoom(id) {
     return rows[0];
 }
 
-async function createRoom(room) {
-    const [result] = await pool.query('INSERT INTO rooms SET ?', room);
+async function createRoom(playerId) {
+    const [result] = await pool.query('INSERT INTO rooms (room_id, playing, owner) VALUES (NULL, FALSE, ?)', [playerId]);
     return result.insertId;
 }
 
@@ -30,17 +30,43 @@ async function getPlayer(id) {
 
 async function updateWordInRoom(roomId) {
     try {
-        const [rows] = await pool.query('SELECT word, word_id FROM words');
-        let randomIndex = Math.floor(Math.random() * rows.length);
-        let word_index = rows[randomIndex].word_id;
+        // Pobranie ID słów, które już były użyte w danym pokoju
+        const [usedWords] = await pool.query(
+            'SELECT word_id FROM wordsUsedInRooms WHERE room_id = ?', 
+            [roomId]
+        );
+        const usedWordIds = usedWords.map(row => row.word_id);
 
-        await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [word_index, roomId]);
-        return rows[randomIndex].word;
+        // Pobranie wszystkich dostępnych słów
+        const [allWords] = await pool.query('SELECT word, word_id FROM words');
+
+        // Filtrowanie, aby usunąć już użyte słowa
+        let availableWords = allWords.filter(word => !usedWordIds.includes(word.word_id));
+
+        // Jeśli wszystkie słowa były już użyte, resetujemy listę
+        if (availableWords.length === 0) {
+            console.warn(`Wszystkie słowa zostały użyte w pokoju ${roomId}, resetowanie listy...`);
+            await pool.query('DELETE FROM wordsUsedInRooms WHERE room_id = ?', [roomId]);
+            availableWords = allWords; // Teraz znowu można użyć wszystkich słów
+        }
+
+        // Losowanie nowego słowa
+        const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+
+        // Aktualizacja w bazie danych: ustawienie nowego słowa w pokoju
+        await pool.query('UPDATE rooms SET currWord_id = ? WHERE room_id = ?', [randomWord.word_id, roomId]);
+
+        // Dodanie tego słowa do tabeli użytych słów
+        await pool.query('INSERT INTO wordsUsedInRooms (room_id, word_id) VALUES (?, ?)', [roomId, randomWord.word_id]);
+
+        console.log(`Nowe słowo dla pokoju ${roomId}: ${randomWord.word}`);
+        return randomWord.word;
     } catch (error) {
-        console.error('Error updating word:', error);
+        console.error('Błąd podczas aktualizacji słowa:', error);
         return null;
     }
 }
+
 
 async function playerNameIsNull(playerId) {
     try {
