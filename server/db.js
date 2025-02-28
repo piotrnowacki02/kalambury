@@ -119,6 +119,42 @@ async function getRoomPlayers(roomId) {
     return rows;
 }
 
+async function updateRoomRoundData(roomId, newDrawingPlayer, currentRound, roundTimestamp
+) {
+    try {
+        await pool.query('UPDATE rooms SET drawingPlayer = ?, currentRound = ?, roundTimestamp = ? WHERE room_id = ?', [newDrawingPlayer, currentRound, roundTimestamp, roomId]);
+    } catch (error) {
+        console.error(`Error updating room ${roomId} round data:`, error);
+    }
+}
+
+async function getCurrentWord(roomId) {
+    const [rows] = await pool.query('SELECT word FROM words w INNER JOIN rooms r ON w.word_id = r.currWord_id WHERE room_id = ?', [roomId]);
+    return rows[0].word;
+}
+
+async function getPlayerTeam(playerId) {
+    const [rows] = await pool.query('SELECT team FROM players WHERE player_id = ?', [playerId]);
+    return rows[0].team;
+}
+
+async function updateTeamScore(roomId, teamNumber, newScore) {
+    try {
+        await pool.query(`UPDATE rooms SET team${teamNumber}Score = ? WHERE room_id = ?`, [newScore, roomId]);
+    } catch (error) {
+        console.error(`Error updating team ${teamNumber} score in room ${roomId}:`, error);
+    }
+}
+
+async function updateRoomStatus(roomId, playing) {
+    try {
+        await pool.query('UPDATE rooms SET playing = ? WHERE room_id = ?', [playing, roomId]);
+    } catch (error) {
+        console.error(`Error updating room ${roomId} status:`, error);
+    }
+}
+
+
 module.exports = {
     getRooms,
     getRoom,
@@ -130,5 +166,10 @@ module.exports = {
     insertNewPlayer,
     setPlayerName,
     playerJoinRoom,
-    getRoomPlayers
+    getRoomPlayers,
+    updateRoomRoundData,
+    getCurrentWord,
+    getPlayerTeam,
+    updateTeamScore,
+    updateRoomStatus
 };
